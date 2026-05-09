@@ -15,9 +15,8 @@ Antes de descargar el proyecto, asegúrate de tener instalado:
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone [https://github.com/TU-USUARIO/nodeflix-frontend.git](https://github.com/TU-USUARIO/nodeflix-frontend.git)
+   git clone https://github.com/stepaz-2022164/nodeflix-front.git
    cd nodeflix-frontend
-
 
 2. **Instalar dependencias:**
    ```bash
