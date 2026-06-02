@@ -12,6 +12,9 @@
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
+      "polyfills": [
+"zone.js"
+],
       "architect": {
         "build": {
           "builder": "@angular/build:application",

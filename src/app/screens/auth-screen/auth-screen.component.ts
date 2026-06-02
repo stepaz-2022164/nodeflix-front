@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+import { InteractionService } from '../../core/services/interaction.service';
 
 @Component({
   selector: 'app-auth-screen',
@@ -38,7 +40,7 @@ import { Router } from '@angular/router';
 
         <!-- Login Form -->
         @if (activeTab() === 'login') {
-          <form (ngSubmit)="onLogin()" class="space-y-4">
+          <form (submit)="onLogin($event)" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-neutral-300 mb-1.5">Email</label>
               <input type="email" [(ngModel)]="email" name="email" placeholder="tu@email.com"
@@ -68,7 +70,7 @@ import { Router } from '@angular/router';
 
         <!-- Register Form -->
         @if (activeTab() === 'register') {
-          <form (ngSubmit)="onRegister()" class="space-y-4">
+          <form (submit)="onRegister($event)" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-neutral-300 mb-1.5">Nombre completo</label>
               <input type="text" [(ngModel)]="fullName" name="fullName" placeholder="Tu nombre"
@@ -99,24 +101,75 @@ import { Router } from '@angular/router';
     </div>
   `
 })
+
 export class AuthScreenComponent {
+  private authService = inject(AuthService);
+  private interactionService = inject(InteractionService); // <-- Lo inyectamos
   private router = inject(Router);
 
   activeTab = signal<'login' | 'register'>('login');
   showError = signal(false);
+  errorMessage = signal('');
+  
   email = '';
   password = '';
   fullName = '';
   confirmPassword = '';
 
-  onLogin() {
-    // TODO: conectar con AuthService
-    // Por ahora navega directo al onboarding
-    this.router.navigate(['/onboarding/trailers']);
+  cambiarTab(tab: 'login' | 'register') {
+    this.activeTab.set(tab);
+    this.showError.set(false);
   }
 
-  onRegister() {
-    // TODO: conectar con AuthService
-    this.router.navigate(['/onboarding/trailers']);
+  onLogin(event: Event) {
+    event.preventDefault();
+    if (!this.email || !this.password) return;
+
+    this.authService.login(this.email, this.password).subscribe({
+      next: () => {
+        // 1. El login fue exitoso y el Token ya está en el localStorage.
+        // 2. Ahora le preguntamos a Neo4j si este usuario ya tiene historial.
+        this.interactionService.getInteraccionesUsuario().subscribe({
+          next: (res: any) => {
+            // Evaluamos la respuesta del backend
+            if (res.success && res.data.length > 0) {
+              // El usuario YA TIENE gustos guardados -> Lo mandamos al catálogo principal
+              this.router.navigate(['/inicio']); 
+            } else {
+              // El arreglo está VACÍO (Usuario Nuevo) -> Lo mandamos a seleccionar series
+              this.router.navigate(['/onboarding-1']); 
+            }
+          },
+          error: () => {
+            // Si por alguna razón falla la consulta, por seguridad lo mandamos al inicio
+            this.router.navigate(['/inicio']);
+          }
+        });
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.message || 'Error al iniciar sesión');
+        this.showError.set(true);
+      }
+    });
+  }
+
+  onRegister(event: Event) {
+    event.preventDefault();
+    if (this.password !== this.confirmPassword) {
+      this.errorMessage.set('Las contraseñas no coinciden');
+      this.showError.set(true);
+      return;
+    }
+
+    this.authService.registro(this.fullName, this.email, this.password).subscribe({
+      next: () => {
+        alert('Cuenta creada con éxito. Ahora inicia sesión.');
+        this.cambiarTab('login');
+      },
+      error: (err) => {
+        this.errorMessage.set(err.error?.message || 'Error al registrar');
+        this.showError.set(true);
+      }
+    });
   }
 }

@@ -1,14 +1,14 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withViewTransitions } from '@angular/router';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withViewTransitions()),
-    provideAnimations(),
-    provideHttpClient(withFetch()),
+    provideZoneChangeDetection({ eventCoalescing: true }), 
+    provideRouter(routes),
+    // Habilitamos las peticiones HTTP e inyectamos el token automáticamente
+    provideHttpClient(withInterceptors([authInterceptor])) 
   ]
 };
